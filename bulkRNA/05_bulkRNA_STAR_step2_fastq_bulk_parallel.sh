@@ -18,7 +18,7 @@ THREADS=40
 JOBS=$(( THREADS / 8 ))
 
 #### 处理参数
-sp=$(find "$INDIR" -mindepth 1 -maxdepth 1 -type d -printf "%f\n")
+sp=$(find "$INDIR" -mindepth 1 -maxdepth 2 -type d -printf "%f\n")
 echo $sp
 OUTDIR1="${OUTDIR}/03STAR"
 mkdir -p $OUTDIR1
@@ -34,6 +34,8 @@ echo -e "@CO\tSTAR version=${STAR_VERSION}\n@CO\tGENOME PATH=${GENOME_DIR}" > "$
 export INDIR OUTDIR1 GENOME_DIR RECORD
 
 #### STARsolo比对：
+## 如果是gz文件, 使用 --readFilesCommand zcat 参数进行读取
+
 printf "%s\n" ${sp} | xargs -I {} -P "$JOBS" bash -c '
      i={}
      echo "Processing $i"
@@ -54,6 +56,7 @@ printf "%s\n" ${sp} | xargs -I {} -P "$JOBS" bash -c '
      STAR --runThreadN 5 \
           --genomeDir "$GENOME_DIR" \
           --readFilesIn "$fq1" "$fq2" \
+          --readFilesCommand zcat \
           --outFileNamePrefix "${OUTDIR1}/${i}" \
           --outSAMtype BAM SortedByCoordinate \
           --quantMode GeneCounts \
@@ -64,7 +67,6 @@ printf "%s\n" ${sp} | xargs -I {} -P "$JOBS" bash -c '
           --alignIntronMin 20 \
           --alignIntronMax 1000000 \
           --alignMatesGapMax 1000000 \
-          --outSAMstrandField intronMotif \
           --outSAMunmapped Within \
           --outSAMattributes NH HI AS NM MD XS \
           --outFilterMultimapNmax 20 \

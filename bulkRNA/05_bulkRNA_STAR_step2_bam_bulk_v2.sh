@@ -17,7 +17,7 @@ THREADS=40
 JOBS=$(( THREADS / 8 ))
 
 #### 处理参数
-sp=$(find "$INDIR" -mindepth 1 -maxdepth 1 -type d -printf "%f\n")
+sp=$(find "$INDIR" -mindepth 1 -maxdepth 2 -type d -printf "%f\n")
 echo $sp
 OUTDIR1="${OUTDIR}/03STAR_tmp"
 mkdir -p $OUTDIR1
@@ -44,6 +44,7 @@ printf "%s\n" $sp | xargs -I {} -P $JOBS bash -c '
      [ -f "$fq1" ] && [ -f "$fq2" ] || exit 1;
      echo "Processing $i";
 
+     ## 如果是gz文件, 使用 --readFilesCommand zcat 参数进行读取
      STAR --runThreadN 8 \
           --genomeDir "$genome_dir" \
           --readFilesIn "$fq1" "$fq2" \
@@ -57,7 +58,6 @@ printf "%s\n" $sp | xargs -I {} -P $JOBS bash -c '
           --alignIntronMin 20 \
           --alignIntronMax 1000000 \
           --alignMatesGapMax 1000000 \
-          --outSAMstrandField intronMotif \
           --outSAMunmapped Within \
           --outSAMattributes NH HI AS NM MD XS \
           --outFilterMultimapNmax 20 \

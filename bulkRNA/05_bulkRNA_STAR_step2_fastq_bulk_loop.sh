@@ -40,11 +40,13 @@ do
      # fq2=`ls $indir"/"$i | grep "_2.fastq$"`
      # fq1_full=$indir"/"$i"/"$fq1
      # fq2_full=$indir"/"$i"/"$fq2
-     fq1_full=$(find "$indir/$i" -type f -name "${i}_R1.fastq")
-     fq2_full=$(find "$indir/$i" -type f -name "${i}_R2.fastq")
+     fq1_full=$(find "$indir/$i" -maxdepth 2 -type f -name "${i}_R1.fastq")
+     fq2_full=$(find "$indir/$i" -maxdepth 2 -type f -name "${i}_R2.fastq")
      echo $fq1_full
      echo $fq2_full
+     
      # STAR比对命令
+     ## 如果是gz文件, 使用 --readFilesCommand zcat 参数进行读取
      STAR --runThreadN 8 \
           --genomeDir $GENOME_DIR \
           --readFilesIn $fq1_full \
@@ -59,7 +61,6 @@ do
           --alignIntronMin 20 \
           --alignIntronMax 1000000 \
           --alignMatesGapMax 1000000 \
-          --outSAMstrandField intronMotif \
           --outSAMunmapped Within \
           --outSAMattributes NH HI AS NM MD XS \
           --outFilterMultimapNmax 20 \

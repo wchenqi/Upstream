@@ -14,12 +14,10 @@
 
 ### full
 # 1) 输入文件要求: 位点排序和建立过索引的bam文件; .fasta(.fa/.fa.gz)参考基因组文件
-bamdir="/scratch/2026-06-01/med-wangcq/Others/AnJQ/AnalysisData/Sam68OECM_scFASTseq/02Result/Get_bam/main/CM/"
-fafile="/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/Genome_Annotation_Reference/00Download/GENCODE/GRCm38.primary_assembly.genome.fa"
-outdir="/scratch/2026-06-01/med-wangcq/Others/AnJQ/AnalysisData/Sam68OECM_scFASTseq/02Result/"
+bamdir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/01Result/01RNAseq/03STAR/"
+fafile="/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/Genome_Annotation_Reference/00Download/Ensembl/GRCm38/Mus_musculus.GRCm38.dna.primary_assembly.fa"
+outdir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/01Result/01RNAseq/05Portcullis/"
 jobs=1
-
-export bamdir fafile outdir
 
 ## 提前建立索引文件
 if [ ! -f "${fafile}.fai" ]; then
@@ -36,14 +34,15 @@ else
 fi
 ## 并行处理
 find $bamdir -mindepth 1 -maxdepth 1 -type f -name "*.bam" | xargs -I {} -P ${jobs} bash -c '
-    i={}
-    echo ${i}
-    echo "Processing: $i"
-    sp=$(basename "$i" .bam)
-    echo "Sample name: $sp"
-    outdir1="${outdir}/Portcullis/${sp}"
-    echo "${outdir1}"
-    mkdir -p "${outdir1}"
+    i="$1";
+    echo ${i};
+    fafile="'"${fafile}"'";
+    echo "Processing: $i";
+    sp=$(basename "$i" .bam);
+    echo "Sample name: $sp";
+    outdir1="${outdir}/Portcullis/${sp}";
+    echo "${outdir1}";
+    mkdir -p "${outdir1}";
 
     portcullis full \
         -t 8 \
@@ -58,7 +57,7 @@ find $bamdir -mindepth 1 -maxdepth 1 -type f -name "*.bam" | xargs -I {} -P ${jo
         --bam_filter \
         "${fafile}" \
         "${i}"
-    '
+    ' _ {}
 
 # Portcullis 完成后，删除它复制的副本（保留结果）
 # rm -rf "${outdir1}/1-prep/portcullis.genome.fa"
