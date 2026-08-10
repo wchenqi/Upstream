@@ -12,34 +12,25 @@ module load java/10.0.2
 source "/work/med-hancs/miniforge3/etc/profile.d/conda.sh"
 conda activate /data/med-hancs/apps/anaconda3/2022.10/envs/BasicR
 
-outdir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/00Data/RNAseq/03FastQC/"
+outdir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/01Result/01RNAseq/01FastQC/"
 indir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/00Data/RNAseq/02Fastq/"
 
-mkdir $outdir
+mkdir -p $outdir
 cd $outdir
-
 echo $outdir
-for file in "$indir"/*/
-do
-    #跳过不存在的情况
-    [ -d "$file" ] || continue
-    echo $file
-    #提取样本名
-    sample_name=$(basename "$file")
-    echo $sample_name
-    outdir1=${outdir}/${sample_name}
-    #mkdir -p ${outdir}/${sample_name}
-    mkdir -p ${outdir1}
+
+find ${indir} -type f -name "*_1.fastq.gz" | while read fq1; do
+    # 自动推导出对应的 R2 文件名
+    fq2=${fq1/_1.fastq.gz/_2.fastq.gz}
     
-    #cd ${outdir1}
-    echo ${indir}/${sample_name}/${sample_name}_1.fastq.gz
-    #-summary ${outdir1}/${sample_name}/PR1.summary \
-    fastqc -o ${outdir1} \
-        --extract \
-        --format fastq \
-        --quiet \
-        ${indir}/${sample_name}/${sample_name}_1.fastq.gz \
-        ${indir}/${sample_name}/${sample_name}_2.fastq.gz
+    # 如果 R2 文件也存在，则运行
+    if [ -f "$fq2" ]; then
+        sample=$(basename "$fq1" | sed 's/_1.fastq.gz//')
+        echo "正在处理样本: $sample"
+        fastqc -o ${outdir} --extract --format fastq --quiet "$fq1" "$fq2"
+    else
+        echo "警告：找不到 $fq2，跳过 $sample"
+    fi
 done
 
 # 主要是包括前面的各种选项和最后面的可以加入N个文件
