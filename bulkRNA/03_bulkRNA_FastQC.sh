@@ -12,24 +12,33 @@ module load java/10.0.2
 source "/work/med-hancs/miniforge3/etc/profile.d/conda.sh"
 conda activate /data/med-hancs/apps/anaconda3/2022.10/envs/BasicR
 
-outdir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/01Result/01RNAseq/01FastQC/"
-indir="/scratch/2026-08-03/med-wangcq/SelfUse/Heart/01_GEO/GSE95143/00Data/RNAseq/02Fastq/"
+outdir="/scratch/2026-08-19/med-wangcq/Others/Hancs/GSE193516/02FastQC/"
+indir="/scratch/2026-08-19/med-wangcq/Others/Hancs/GSE193516/00RawData/02_fastq/"
+suffix=".fastq"
 
 mkdir -p $outdir
 cd $outdir
-echo $outdir
+echo "Output directory: $outdir"
 
-find ${indir} -type f -name "*_1.fastq.gz" | while read fq1; do
-    # 自动推导出对应的 R2 文件名
-    fq2=${fq1/_1.fastq.gz/_2.fastq.gz}
+## 双端数据处理
+find ${indir} -type f -name "*${suffix}" | while read fq1; do
+    # 避免循环继承
+    fq2=""
     
-    # 如果 R2 文件也存在，则运行
-    if [ -f "$fq2" ]; then
-        sample=$(basename "$fq1" | sed 's/_1.fastq.gz//')
-        echo "正在处理样本: $sample"
+    if [[ "$fq1" == *_1"${suffix}" ]]; then
+        # 自动推导出对应的 R2 文件名
+        fq2=${fq1/_1"${suffix}"/_2"${suffix}"}
+    fi        
+    # 如果 $fq2 变量已定义 且 R2 文件存在，则运行
+    if [ -n "$fq2" ] && [ -f "$fq2" ]; then
+    # if [ -n "$fq2" -a -f "$fq2" ]; then   ## 这里使用 -a 合并条件(-o 或者)
+        echo "双端测序：$fq1 和 $fq2 均存在"
+        sample=$(basename "$fq1" _1"${suffix}")
+        echo "找到 ${fq2}, 正在处理双端测序数据: $sample"
         fastqc -o ${outdir} --extract --format fastq --quiet "$fq1" "$fq2"
     else
-        echo "警告：找不到 $fq2，跳过 $sample"
+        echo "警告：找不到 ${fq2}, 作为单端数据处理"
+        fastqc -o ${outdir} --extract --format fastq --quiet "$fq1"
     fi
 done
 
