@@ -79,12 +79,12 @@ xargs -P ${JOBS} -n 1 bash -c '
             -I ${fq2} \
             -o ${outdir}/${sp}_1${suffix} \
             -O ${outdir}/${sp}_2${suffix} \
-            --trim_front1 6 \
+            --trim_front1 7 \
             --trim_tail1 0 \
-            --trim_front2 6 \
+            --trim_front2 7 \
             --trim_tail2 0 \
             --overrepresentation_analysis \
-            --qualified_quality_phred 28 \
+            --qualified_quality_phred 30 \
             --unqualified_percent_limit 40 \
             --length_required 30 \
             --complexity_threshold 30 \
@@ -114,10 +114,10 @@ xargs -P ${JOBS} -n 1 bash -c '
             -w 8 \
             -i ${fq1} \
             -o ${outdir}/${sp}${suffix} \
-            --trim_front1 6 \
+            --trim_front1 7 \
             --trim_tail1 0 \
             --overrepresentation_analysis \
-            --qualified_quality_phred 28 \
+            --qualified_quality_phred 30 \
             --unqualified_percent_limit 40 \
             --length_required 30 \
             --complexity_threshold 30 \
@@ -125,7 +125,7 @@ xargs -P ${JOBS} -n 1 bash -c '
             --cut_mean_quality 30 \
             --cut_front \
             --n_base_limit $N_num \
-            --detect_adapter_for_pe \
+            --adapter_sequence AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC \
             --trim_poly_g \
             --poly_g_min_len 10 \
             --trim_poly_x \
