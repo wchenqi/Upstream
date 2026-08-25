@@ -22,7 +22,6 @@ ForWhippet="True"
 ## 处理参数
 # 建立输出文件夹
 mkdir -p $OUTDIR
-cd $OUTDIR
 echo "输出路径 $OUTDIR"
 
 if [ "${ForWhippet}" = "True" ]; then
@@ -36,6 +35,7 @@ export OUTDIR INDIR N_num
 
 # 获取样本列表
 find $INDIR -mindepth 1 -type f -name "*${suffix}" | \
+grep -v "_2${suffix}" | \
 xargs -P ${JOBS} -n 1 bash -c '
     # 这里是压缩文件${suffix}, 包含单端双端测序结果
     fq1="$1"
@@ -77,8 +77,8 @@ xargs -P ${JOBS} -n 1 bash -c '
             -w 8 \
             -i ${fq1} \
             -I ${fq2} \
-            -o ${outdir}/${sp}_1${suffix} \
-            -O ${outdir}/${sp}_2${suffix} \
+            -o ${outdir_PE}/${sp}_1${suffix} \
+            -O ${outdir_PE}/${sp}_2${suffix} \
             --trim_front1 7 \
             --trim_tail1 0 \
             --trim_front2 7 \
@@ -99,7 +99,7 @@ xargs -P ${JOBS} -n 1 bash -c '
             --poly_x_min_len 10 \
             --html "${outdir_PE}/${sp}_fastp_report.html"
     else
-        # 如果fq2文件存在, 建立子文件夹 'pairedEnd'
+        # 如果fq2文件存在, 建立子文件夹 'singleEnd'
         outdir_SE="${outdir}/singleEnd/"
         echo "输出路径 ${outdir_SE}"
         if [ ! -d "${outdir_SE}" ]; then
@@ -113,7 +113,7 @@ xargs -P ${JOBS} -n 1 bash -c '
         fastp \
             -w 8 \
             -i ${fq1} \
-            -o ${outdir}/${sp}${suffix} \
+            -o ${outdir_SE}/${sp}${suffix} \
             --trim_front1 7 \
             --trim_tail1 0 \
             --overrepresentation_analysis \
