@@ -21,7 +21,9 @@ cd $outdir
 echo "Output directory: $outdir"
 
 ## 双端数据处理
-find ${indir} -type f -name "*${suffix}" | while read fq1; do
+find ${indir} -type f -name "*${suffix}" | \
+grep -v "_2${suffix}" | \
+while read fq1; do
     # 避免循环继承
     fq2=""
     
