@@ -90,20 +90,13 @@ awk -F '\t' '{print $1}' "$OUTFILE" | xargs -n 1 -P "$JOBS" \
                     ' _
 
 ### 查看已下载和未下载文件数
-## 方法一：
-# array1=`cat $infile`
-# array2=`ls $OUTDIR`
-# -d代表已下载
-# echo ${array1[@]} ${array2[@]} | sed 's/ /\n/g' | sort | uniq -d | wc -l
-# -u代表未下载
-# echo ${array1[@]} ${array2[@]} | sed 's/ /\n/g' | sort | uniq -u | wc -l
-
-## 方法二：
-# 读取SRR列表到数组
-# mapfile -t srr_list < "$infile"     # 将文件内容按行读取到数组，[-t]消除换行符
-# 获取已下载的SRR目录名
-# download_srr=($(ls -d "$OUTDIR"/*/ 2>/dev/null | xargs -n $PARALLEL_NUM basename))  # 
-# 统计已下载（交集）
-# comm -12 <(printf "%s\n" "${srr_list[@]}" | sort) <(printf "%s\n" "${downloaded_srr[@]}" | sort) | wc -l
-# 统计未下载（差集）
-# comm -23 <(printf "%s\n" "${srr_list[@]}" | sort) <(printf "%s\n" "${downloaded_srr[@]}" | sort) | wc -l
+## 获取已成功下载文件名
+find "${OUTDIR}" -name "*.sra" -type f -exec dirname {} \; | sort -u | xargs -n1 basename > "${OUTDIR}/SRR_download.txt"
+echo "输出未成功下载文件："
+comm -23 "${TMPFILE}" "${OUTDIR}/SRR_download.txt"
+# 1 仅在文件1存在的行
+# 2 仅在文件2存在的行
+# 3 在文件1和文件2共同存在的行
+# -12 排除12,输出仅在文件1和文件2共同存在的行
+# -13 排除13,输出仅在文件2存在的行
+# -23 排除23,输出仅在文件1存在的行
