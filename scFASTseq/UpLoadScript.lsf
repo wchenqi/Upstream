@@ -1,0 +1,19 @@
+#!/bin/bash
+#BSUB -J python
+#BSUB -q short
+#BSUB -n 40
+#BSUB -e %J.err
+#BSUB -o %J.out
+#BSUB -R "span[ptile=40]"
+
+date
+
+hostfile=`echo $LSB_DJOB_HOSTFILE`
+NP=`cat $hostfile | wc -l`
+cd $LS_SUBCWD
+
+COMMAND_std="bash /data/med-wangcq/01CondaEnv/02Git_repo/Upstream/scFASTseq/01_SeekSoulTools.sh"
+$COMMAND_std > $LSB_JOBID.log 2>&1
+
+date
+

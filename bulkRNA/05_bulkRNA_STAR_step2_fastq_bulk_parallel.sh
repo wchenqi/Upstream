@@ -10,16 +10,15 @@ module load java/10.0.2
 source /data/med-wangcq/01CondaEnv/00DataBase/00Tools/STAR-2.7.11a/env.sh
 
 #### 设置参数
-OUTDIR="/scratch/2026-05-11/med-wangcq/Others/AnJQ/AnalysisData/Sam68KOWT_AngII_RNAseq/"
-INDIR="/scratch/2026-05-11/med-wangcq/Others/AnJQ/AnalysisData/Sam68KOWT_AngII_RNAseq/02Clean_fastp/"
-GENOME_DIR="/data/med-wangcq/01CondaEnv/00DataBase/02genome_annotation/STAR/Mus_musculus/GRCm38_mm10_Ensembl/"
-# /data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/STAR/Homo_sapiens/GRCh38_hg38_NCBI/
-THREADS=40
-JOBS=$(( THREADS / 8 ))
+export OUTDIR="/scratch/2026-08-19/med-wangcq/Others/Hancs/GSE193516/"
+export INDIR="/scratch/2026-08-19/med-wangcq/Others/Hancs/GSE193516/03Fastp/"
+export GENOME_DIR="/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/STAR/Mus_musculus/GRCm38_mm10_Ensembl/"
+export THREADS=40
+export SUFFIX=".fastq"
+export JOBS=$(( THREADS / 8 ))
 
 #### 处理参数
-sp=$(find "$INDIR" -mindepth 1 -maxdepth 2 -type d -printf "%f\n")
-echo $sp
+## 建立输出文件夹
 OUTDIR1="${OUTDIR}/03STAR"
 mkdir -p $OUTDIR1
 cd $OUTDIR1
@@ -30,34 +29,55 @@ STAR_VERSION=$(STAR --version | head -n 1)
 echo $STAR_VERSION
 echo -e "@CO\tSTAR version=${STAR_VERSION}\n@CO\tGENOME PATH=${GENOME_DIR}" > "$RECORD"
 
-# 导出变量供 xargs 使用
-export INDIR OUTDIR1 GENOME_DIR RECORD
+## 提取fastq文件路径
+#1) 如果一个run一个文件夹
+# sp=$(find "$INDIR" -mindepth 1 -maxdepth 2 -type d -printf "%f\n")
+# echo $sp
 
-#### STARsolo比对：
-## 如果是gz文件, 使用 --readFilesCommand zcat 参数进行读取
+#2) 如果全部都在一个文件夹
+find $INDIR -mindepth 1 -type f -name "*${SUFFIX}" | \
+grep -v "_2${SUFFIX}" | \
+xargs -P ${JOBS} -n 1 bash -c '
+     #### STARsolo比对：
+     ## 如果是gz文件, 使用 --readFilesCommand zcat 参数进行读取
+     fq1="$1"
+     filename=$(basename ${fq1})
+     echo "Processing $fq1"
 
-printf "%s\n" ${sp} | xargs -I {} -P "$JOBS" bash -c '
-     i={}
-     echo "Processing $i"
+     ## 传参
+     # SUFFIX='"SUFFIX"'
+     # OUTDIR1='"$OUTDIR1"'
+     # GENOME_DIR='"$GENOME_DIR"'
+     # RECORD='$RECORD'
 
-     # indir='"$INDIR"'
-     # outdir1='"$OUTDIR1"'
-     # genome_dir='"$GENOME_DIR"'
-     # record='$RECORD'
+     # 判断单端双端测序数据
+     if [[ "${filename}" == *_1${SUFFIX} ]]; then
+          # 双端
+          fq2="${fq1/_1${SUFFIX}/_2${SUFFIX}}"
+          [ ! -f "$fq2" ] && exit 1
+          sample=$(basename "${fq1}" "_1${SUFFIX}")
+          outdir="${OUTDIR1}/PE"
+          read_files="$fq1 $fq2"
+     else
+          # 单端
+          sample=$(basename "${fq1}" "${SUFFIX}")
+          sample=${sample%.gz}  # 去掉 .gz 后缀
+          outdir="${OUTDIR1}/SE"
+          read_files="$fq1"
+     fi
+     ## 这里直接建立输出文件夹
+     mkdir -p "$outdir"
 
-     fq1=$(find "$INDIR/$i" -maxdepth 1 -type f -name "*_R1.fastq" | head -1)
-     fq2=$(find "$INDIR/$i" -maxdepth 1 -type f -name "*_R2.fastq" | head -1)
+     # 检测压缩文件
+     read_cmd=""
+     [[ "${fq1}" == *.gz ]] && read_cmd="zcat"         # 这里&&和if; then命令格式一样
 
-     echo "R1: ${fq1}"
-     echo "R2: ${fq2}"
-     
-     [ -f "$fq1" ] && [ -f "$fq2" ] || exit 1
-
+     # 一行执行（使用条件扩展）
      STAR --runThreadN 5 \
           --genomeDir "$GENOME_DIR" \
-          --readFilesIn "$fq1" "$fq2" \
-          --readFilesCommand zcat \
-          --outFileNamePrefix "${OUTDIR1}/${i}" \
+          --readFilesIn $read_files \
+          ${read_cmd:+--readFilesCommand $read_cmd} \
+          --outFileNamePrefix "${outdir}/${sample}" \
           --outSAMtype BAM SortedByCoordinate \
           --quantMode GeneCounts \
           --twopassMode Basic \
@@ -73,10 +93,10 @@ printf "%s\n" ${sp} | xargs -I {} -P "$JOBS" bash -c '
           --outSAMmultNmax -1 \
           --outFilterMismatchNmax 3 \
           --outSAMheaderCommentFile "$RECORD" \
-          2>&1 | tee "${OUTDIR1}/${i}_STAR.log"
+          2>&1 | tee "${outdir}/${sample}_STAR.log"
 
      # ===== 立即验证 + 索引（合并在一起）=====
-     BAM="${OUTDIR1}/${i}Aligned.sortedByCoord.out.bam"
+     BAM="${outdir}/${sample}Aligned.sortedByCoord.out.bam"
      
      if [ -f "$BAM" ]; then
           echo "BAM generated: $BAM"
@@ -87,21 +107,21 @@ printf "%s\n" ${sp} | xargs -I {} -P "$JOBS" bash -c '
           else
                echo "BAM CORRUPTED, removing: $BAM"
                rm -f "$BAM"
-               echo "Please rerun $i manually"
+               echo "Please rerun $sp manually"
           fi
      else
-          echo "FAILED: BAM not found for $i"
+          echo "FAILED: BAM not found for $sp"
      fi
      
-     echo "=== Finished: $i ==="
+     echo "=== Finished: $sp ==="
 ' _
 
-echo "All samples processed. Check logs in ${OUTDIR1}/*_STAR.log"
+echo "All samples processed. Check Results in ${OUTDIR1}"
 
 # for i in $sp
 # do
 #      echo $i
 #      ## 输出测序深度文件：
-#      inBAM=${OUTDIR1}/${i}Aligned.sortedByCoord.out.bam
-#      samtools index ${inBAM} ${OUTDIR1}/${i}Aligned.sortedByCoord.out.bam.bai
+#      inBAM=${OUTDIR1}/${sp}Aligned.sortedByCoord.out.bam
+#      samtools index ${inBAM} ${OUTDIR1}/${sp}Aligned.sortedByCoord.out.bam.bai
 # done

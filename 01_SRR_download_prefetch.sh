@@ -14,10 +14,10 @@
 # ===================================== 配置区 =========================================
 JOBS=4
 API_BASE="https://www.ebi.ac.uk/ena/portal/api/filereport"
-INFILE="/data/med-wangcq/Chenqi_W/03Splicing/03PublicData/GSE130036/00Data/GSE130036_SRR_Acc_List.txt"
+INFILE="/data/med-wangcq/Chenqi_W/03Splicing/03PublicData/GSE205438/01Data/SRR_Acc_List_scRNA.txt"
 # "/data/med-wangcq/Chenqi_W/03Splicing/03PublicData/GSE153801/00Data/GSE153800_RNAseq/SRR_Acc_List.txt"  # 一行一个id
 FIELDS="run_accession,sample_accession,secondary_sample_accession,sample_alias,fastq_ftp,submitted_ftp,library_layout,library_strategy,instrument_platform"
-OUTDIR="/scratch/2026-07-27/med-wangcq/SelfUse/Heart/01_GEO/GSE130036/01RawData/"
+OUTDIR="/scratch/2026-08-19/med-wangcq/SelfUse/Heart/01_GEO/GSE205438/01scRNA/01SRA/"
 MAX_SIZE=500G
 # 设置重试次数
 MAX_RETRY=5
@@ -35,7 +35,8 @@ echo "Scratching DataInfo"
 if [[ -f "$INFILE" ]]; then
     echo "[INFO] Use INFILE: $INFILE"
     # grep -v '^#' "$INFILE" | mapfile -t acc_list     # 提取非注释行，消除末尾的\t赋值到变量acc_list
-    grep -v '^#' "$INFILE" | mapfile -t acc_list
+    sed 's/[[:space:]]*$//' "$INFILE" | grep -v '^#' > "${TMPFILE}"
+    mapfile -t acc_list < "${TMPFILE}"
 else
     echo "[ERROR] INFILE are invalid"
     exit 1
@@ -43,6 +44,7 @@ fi
 
 ## ========= 清空输出 =========
 > "$OUTFILE"
+> "$TMPFILE"
 
 ## ========= 主循环 =========
 for acc in "${acc_list[@]}"; do

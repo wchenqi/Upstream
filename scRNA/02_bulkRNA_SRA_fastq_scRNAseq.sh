@@ -34,7 +34,7 @@ find "$indir" -maxdepth 2 -type f -name "*.sra" | xargs -I {} -P $JOBS bash -c '
      # tmpdir="'"${outdir}"'/tmp/${sp}"
      mkdir -p "${outdir1}"
      # mkdir -p "${tmpdir}"
-     parallel-fastq-dump -t 6 -O "${outdir1}" --split-3 -s "${i}"
+     parallel-fastq-dump -t 6 -O "${outdir1}" --split-files --gzip -s "${i}"
      #  --tmpdir "${tmpdir}"
      # 移除tmp文件夹
      # rm -rf "'"${outdir}"'/tmp/"
