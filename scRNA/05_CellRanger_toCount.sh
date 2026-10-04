@@ -3,31 +3,39 @@
 ### 脚本说明
 ## 工具在base环境
 
-ref="/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/CellRanger/scRNA_STseq/Download/refdata-gex-mm10-2020-A/"    # 参考注释文件路径, 见：/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/CellRanger/scRNA_STseq/Download/
-indir="/scratch/2026-09-28/med-wangcq/01SelfUse/01Neutrophil/00Data/00RestData/02_fastq/01Test/"  # 输入包含fastq文件的总路径 indir/sampleid/fastq_file
-outdir="/scratch/2026-09-28/med-wangcq/01SelfUse/01Neutrophil/00Data/00RestData/03_CellRanger/" # 输出文件路径
-if [ ! -d $outdir ]; then
-mkdir -p $outdir
+export ref="/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/CellRanger/scRNA_STseq/Download/refdata-gex-mm10-2020-A/"    # 参考注释文件路径, 见：/data/med-wangcq/01CondaEnv/02Git_repo/01DataBase/CellRanger/scRNA_STseq/Download/
+export indir="/scratch/2026-09-28/med-wangcq/01SelfUse/01Neutrophil/00Data/00RestData/03_MergeFq/"  # 输入包含fastq文件的总路径 indir/sampleid/fastq_file
+export outdir="/scratch/2026-09-28/med-wangcq/01SelfUse/01Neutrophil/00Data/00RestData/04_CellRanger/" # 输出文件路径
+JOBS=5
+
+## 建立输出文件夹
+if [ ! -d ${outdir} ]; then
+mkdir -p ${outdir}
 fi
-SP=`ls $indir`
-for i in $SP
-do
-echo $i
 
-## 这里添加判断
-file=$(find "${indir}" -type f -name "${i}*" | head -n 1)
+## 跳转运行路径
+cd ${outdir}
 
-cellranger count \
-    --id ${i} \
-    --fastqs ${indir}/${i} \
-    --sample ${i} \
-    --expect-cells=10000 \
-    --transcriptome ${ref} \
-    --output-dir ${outdir}/${i} \
-    --localcores 10 \
-    --nosecondary
+## 获取路径下样本名
+find $indir -mindepth 1 -maxdepth 1 -type d | xargs -I {} -P $JOBS bash -c '
+    i="$1"
+    echo "${i}"
+    sp=$(basename "$i")
+    echo ${sp}
 
-done
+
+    ## 执行运行
+    cellranger count \
+        --id ${sp} \
+        --fastqs ${indir}/${sp} \
+        --sample ${sp} \
+        --expect-cells=10000 \
+        --transcriptome ${ref} \
+        --output-dir ${outdir}/${sp} \
+        --localcores 6 \
+        --nosecondary
+
+' _ {}
 
 # 参考链接: https://www.10xgenomics.com/support/jp/software/cell-ranger/latest/analysis/running-pipelines/cr-gex-count
 # --fastqs 交代测速数据路径（文件夹名）

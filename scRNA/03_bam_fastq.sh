@@ -22,7 +22,19 @@ find "${indir}" -type f -name "*.bam" | xargs -I {} -P $JOBS bash -c '
     # 处理bam文件
     bamtofastq --nthreads=6 "${i}" "${outdir}/${sp}"
     # 路径下所有fastq文件转移到${outdir}/${sp}
-    fq_file=$(find "${outdir}/${sp}" -type f -name "*.fastq.gz")
-    echo ${fq_file}
-    mv ${fq_file} ${outdir}/${sp}
+    fq_file=($(find "${outdir}/${sp}" -type f -name "*.fastq.gz"))
+    echo ${fq_file[@]}
+    for fl in "${fq_file[@]}"; do
+        echo ${fl}
+        filename=$(basename "${fl}")
+        echo ${filename}
+        newname=$(echo $filename | sed "s/bamtofastq/${sp}/g")
+        echo ${newname}
+        ## 转移文件+重命名文件
+        mv "${fl}" "${outdir}/${sp}/${newname}"
+    done
+    find "${outdir}/${sp}" -mindepth 1 -type d -empty -delete        # 移除空文件夹
+    ## 检查路径下文件名
+    echo "--- files in ${outdir}/${sp} ---"
+    ls ${outdir}/${sp}
 ' _ {}
